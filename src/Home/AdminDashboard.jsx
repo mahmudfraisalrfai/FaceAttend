@@ -56,7 +56,7 @@ function AdminDashboard() {
           supervisorsData.data.supervisor.map((sup) => ({
             id: sup.id,
             name: sup.name,
-            email: `${sup.name}@example.com`,
+            email: sup.email,
           }))
         );
         setLecturersLoading(false);
@@ -98,7 +98,7 @@ function AdminDashboard() {
         {
           id: result.user.id,
           name: result.user.name,
-          email: `${result.user.name}@example.com`,
+          email: result.user.email,
         },
       ]);
 

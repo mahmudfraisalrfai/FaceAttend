@@ -319,11 +319,12 @@ import * as faceapi from "face-api.js";
 import * as XLSX from "xlsx";
 import { Card, CardContent, Button } from "../ui/desgin";
 import { useLocation, useNavigate } from "react-router-dom";
-import { storeAttendace } from "../api";
+import { getAllStudents, storeAttendace } from "../api";
 import { useAuth } from "./context/AuthContext";
-import { studentsData } from "../data";
+import { toast } from "react-toastify";
 
 function WebCam() {
+  const { token } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const videoRef = useRef(null);
@@ -331,11 +332,27 @@ function WebCam() {
 
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [attendance, setAttendance] = useState(new Set());
-
+  const [allStudents, SetAllStudents] = useState([]);
   const studentDetail = location.state?.studentDetail;
   const useFromState = Array.isArray(studentDetail) && studentDetail.length > 0;
-  const studentNames = useFromState ? studentDetail : studentsData;
 
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!useFromState) {
+        try {
+          const response = await getAllStudents(token);
+          SetAllStudents(response.data);
+        } catch (error) {
+          toast.error("حدث خطأ ما الرجاء اعادة المحاولة");
+        }
+      }
+    };
+    fetchStudents();
+  }, [token, useFromState]);
+
+  const studentNames = useFromState
+    ? studentDetail
+    : allStudents?.students || [];
   const loadModels = async () => {
     const MODEL_URL = "/models";
     await Promise.all([
@@ -347,12 +364,15 @@ function WebCam() {
   };
 
   const loadLabeledDescriptors = () => {
-    return studentNames.map(
-      (student) =>
-        new faceapi.LabeledFaceDescriptors(student.student_name, [
-          new Float32Array(student.descriptor),
-        ])
-    );
+    return studentNames.map((student) => {
+      const descriptor = new Float32Array(student.face_encoding);
+      return new faceapi.LabeledFaceDescriptors(
+        `${!useFromState ? student.name : student.student_name} - ${
+          student.university_id
+        }`,
+        [descriptor]
+      );
+    });
   };
 
   const startVideo = async () => {
@@ -430,12 +450,8 @@ function WebCam() {
           const color = match.label === "unknown" ? "red" : "green";
 
           if (match.label !== "unknown") {
-            const student = studentNames.find(
-              (s) => s.student_name === match.label
-            );
-            if (student) {
-              setAttendance((prev) => new Set(prev).add(student.university_id));
-            }
+            const universityId = match.label.split(" - ")[1];
+            setAttendance((prev) => new Set(prev).add(universityId));
           }
 
           context.strokeStyle = color;
@@ -469,7 +485,6 @@ function WebCam() {
     };
   }, []);
 
-  const { token } = useAuth();
   const handleStoreAttendance = async () => {
     await storeAttendace(
       "sv/storeAttendance",
@@ -516,7 +531,12 @@ function WebCam() {
                   </tr>
                 </thead>
                 <tbody>
-                  {studentNames.map((detail, index) => {
+                  {(useFromState
+                    ? studentDetail
+                    : studentNames.filter((s) =>
+                        attendance.has(s.university_id)
+                      )
+                  ).map((detail, index) => {
                     const isPresent = attendance.has(detail.university_id);
                     return (
                       <tr
@@ -524,9 +544,7 @@ function WebCam() {
                         className={isPresent ? "bg-green-50" : "bg-red-50"}
                       >
                         <td className="px-4 py-2">{index + 1}</td>
-                        <td className="px-4 py-2 font-medium">
-                          {detail.student_name}
-                        </td>
+                        <td className="px-4 py-2 font-medium">{detail.name}</td>
                         <td className="px-4 py-2 font-medium">
                           {detail.university_id}
                         </td>
@@ -534,7 +552,7 @@ function WebCam() {
                           {isPresent ? "✅" : "❌"}
                         </td>
                         <td className="px-4 py-2 text-center">
-                          {!isPresent && (
+                          {!isPresent && useFromState && (
                             <button
                               onClick={() =>
                                 setAttendance((prev) =>
@@ -554,18 +572,20 @@ function WebCam() {
               </table>
             </div>
 
-            <Button
-              onClick={exportAttendanceToExcel}
-              className="mt-6 bg-purple-600 text-white hover:bg-purple-700"
-            >
-              📥 تحميل Excel
-            </Button>
-            <Button
-              onClick={handleStoreAttendance}
-              className="mt-6 ml-4 bg-green-600 text-white hover:bg-green-700"
-            >
-              📝 تخزين في النظام
-            </Button>
+            <div className="mt-6 flex gap-4">
+              <Button
+                onClick={exportAttendanceToExcel}
+                className="bg-purple-600 text-white hover:bg-purple-700"
+              >
+                📥 تحميل Excel
+              </Button>
+              <Button
+                onClick={handleStoreAttendance}
+                className="bg-green-600 text-white hover:bg-green-700"
+              >
+                📝 تخزين في النظام
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

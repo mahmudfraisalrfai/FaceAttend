@@ -157,10 +157,34 @@ export const createSession = async (token, body) => {
   }
 };
 
-export const createStudent = async (formData) => {
-  return await axios.post("/api/students", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+export const createStudent = async (formData, token) => {
+  try {
+    return await axios.post(
+      `${process.env.REACT_APP_BASE_URL}/admin/createStudent`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getAllStudents = async (token) => {
+  try {
+    return await axios.post(
+      `${process.env.REACT_APP_BASE_URL}/sv/getAllStudents`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  } catch (error) {
+    throw error;
+  }
 };

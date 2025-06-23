@@ -2,17 +2,29 @@ import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, Button } from "../ui/desgin";
 import { toast } from "react-toastify";
 import * as faceapi from "face-api.js";
+import axios from "axios";
+import { useAuth } from "../components/context/AuthContext";
+import { createStudent } from "../api/index";
 
 const StudentEntry = () => {
+  const { token } = useAuth();
+
   const [form, setForm] = useState({
-    studentId: "",
-    fullName: "",
-    faceDescriptor: null,
+    university_id: "",
+    name: "",
+    department_id: "",
+    year_id: "",
+    face_encoding: null,
   });
+
+  const [departments, setDepartments] = useState([]);
+  const [years, setYears] = useState([]);
+
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState(""); // رسالة المعالجة
+  const [processingMessage, setProcessingMessage] = useState("");
+
   const imgRef = useRef(null);
 
   const loadModels = async () => {
@@ -24,8 +36,31 @@ const StudentEntry = () => {
     ]);
   };
 
+  const fetchInitialData = async () => {
+    try {
+      const [departmentsRes, yearsRes] = await Promise.all([
+        axios.get(`${process.env.REACT_APP_BASE_URL}/admin/getAllDepartments`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        axios.get(`${process.env.REACT_APP_BASE_URL}/admin/getAllYears`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ]);
+      setDepartments(departmentsRes.data.departments || []);
+      setYears(yearsRes.data.years || []);
+    } catch (error) {
+      toast.error("فشل تحميل البيانات");
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     loadModels();
+    fetchInitialData();
   }, []);
 
   const handleChange = (e) => {
@@ -53,13 +88,13 @@ const StudentEntry = () => {
 
         if (!detection) {
           setProcessingMessage("❌ لم يتم التعرف على وجه في الصورة.");
-          setForm((prev) => ({ ...prev, faceDescriptor: null }));
+          setForm((prev) => ({ ...prev, face_encoding: null }));
           setIsProcessing(false);
           return;
         }
 
         const descriptorArray = Array.from(detection.descriptor);
-        setForm((prev) => ({ ...prev, faceDescriptor: descriptorArray }));
+        setForm((prev) => ({ ...prev, face_encoding: descriptorArray }));
         setProcessingMessage("✅ تم استخراج ملامح الوجه بنجاح.");
         setIsProcessing(false);
       };
@@ -69,23 +104,40 @@ const StudentEntry = () => {
 
   const handleSubmit = async () => {
     const newErrors = {};
-    if (!form.studentId) newErrors.studentId = "الرجاء إدخال الرقم الجامعي.";
-    if (!form.fullName) newErrors.fullName = "الرجاء إدخال الاسم الكامل.";
-    if (!form.faceDescriptor)
-      newErrors.faceDescriptor = "الرجاء رفع صورة واضحة للطالب.";
+    if (!form.university_id)
+      newErrors.university_id = "الرجاء إدخال الرقم الجامعي.";
+    if (!form.name) newErrors.name = "الرجاء إدخال الاسم الكامل.";
+    if (!form.department_id) newErrors.department_id = "الرجاء اختيار القسم.";
+    if (!form.year_id) newErrors.year_id = "الرجاء اختيار السنة الدراسية.";
+    if (!form.face_encoding)
+      newErrors.face_encoding = "الرجاء رفع صورة واضحة للطالب.";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     try {
-      console.log(form);
+      const formattedForm = {
+        ...form,
+        department_id: parseInt(form.department_id),
+        year_id: parseInt(form.year_id),
+      };
+
+      const res = await createStudent(formattedForm, token);
       toast.success("✅ تم إضافة الطالب بنجاح!");
-      setForm({ studentId: "", fullName: "", faceDescriptor: null });
+      console.log("✅ Success:", res);
+
+      setForm({
+        university_id: "",
+        name: "",
+        department_id: "",
+        year_id: "",
+        face_encoding: null,
+      });
       setImagePreview(null);
-      setProcessingMessage(""); // حذف الرسالة بعد الإضافة
+      setProcessingMessage("");
     } catch (error) {
-      toast.error("❌ فشل في إضافة الطالب.");
-      console.error(error);
+      toast.error(error?.response?.data.errors.university_id);
+      console.error("❌ Error:", error);
     }
   };
 
@@ -98,38 +150,91 @@ const StudentEntry = () => {
           </h2>
 
           <div className="grid grid-cols-1 gap-6">
+            {/* الرقم الجامعي */}
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-700">
                 الرقم الجامعي
               </label>
               <input
                 type="text"
-                name="studentId"
-                value={form.studentId}
+                name="university_id"
+                value={form.university_id}
                 onChange={handleChange}
                 className="w-full p-2 border rounded-md"
               />
-              {errors.studentId && (
-                <p className="text-red-500 text-sm mt-1">{errors.studentId}</p>
+              {errors.university_id && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.university_id}
+                </p>
               )}
             </div>
 
+            {/* الاسم الكامل */}
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-700">
                 الاسم الكامل
               </label>
               <input
                 type="text"
-                name="fullName"
-                value={form.fullName}
+                name="name"
+                value={form.name}
                 onChange={handleChange}
                 className="w-full p-2 border rounded-md"
               />
-              {errors.fullName && (
-                <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+              {errors.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
               )}
             </div>
 
+            {/* القسم */}
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                القسم
+              </label>
+              <select
+                name="department_id"
+                value={form.department_id}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md bg-white"
+              >
+                <option value="">-- اختر القسم --</option>
+                {departments.map((dep) => (
+                  <option key={dep.id} value={dep.id}>
+                    {dep.name}
+                  </option>
+                ))}
+              </select>
+              {errors.department_id && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.department_id}
+                </p>
+              )}
+            </div>
+
+            {/* السنة الدراسية */}
+            <div>
+              <label className="block mb-1 text-sm font-medium text-gray-700">
+                السنة الدراسية
+              </label>
+              <select
+                name="year_id"
+                value={form.year_id}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-md bg-white"
+              >
+                <option value="">-- اختر السنة الدراسية --</option>
+                {years.map((year) => (
+                  <option key={year.id} value={year.id}>
+                    {year.label}
+                  </option>
+                ))}
+              </select>
+              {errors.year_id && (
+                <p className="text-red-500 text-sm mt-1">{errors.year_id}</p>
+              )}
+            </div>
+
+            {/* صورة الوجه */}
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-700">
                 صورة الوجه
@@ -155,14 +260,15 @@ const StudentEntry = () => {
                   )}
                 </div>
               )}
-              {errors.faceDescriptor && (
+              {errors.face_encoding && (
                 <p className="text-red-500 text-sm mt-1">
-                  {errors.faceDescriptor}
+                  {errors.face_encoding}
                 </p>
               )}
             </div>
           </div>
 
+          {/* زر الإرسال */}
           <div className="mt-8 flex justify-center">
             <Button
               onClick={handleSubmit}

@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getSessionById } from "../api";
+import { useAuth } from "../components/context/AuthContext";
 
 export const Card = ({ children, className }) => (
   <div className={`bg-white shadow-md rounded-2xl p-4 ${className}`}>
@@ -29,7 +32,24 @@ export const Button = ({ children, ...props }) => (
 );
 
 export const SessionCard = ({ session }) => {
+  const { token } = useAuth();
+  const [students, setStudents] = useState([]);
   const navigate = useNavigate();
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const response = await getSessionById("getStudentBySessionId", token, {
+          session_id: session.id,
+        });
+        setStudents(response.data.students);
+      } catch (error) {
+        console.error("فشل تحميل بيانات الجلسة:", error);
+      }
+    };
+
+    fetchSession();
+  }, [session]);
+
   const isValidSession = new Date(session.endTime) > new Date();
   const formatDateTime = (dateTimeStr) => {
     const options = {
@@ -90,7 +110,7 @@ export const SessionCard = ({ session }) => {
             onClick={() =>
               navigate("/webcam", {
                 state: {
-                  studentDetail: session.attendance,
+                  studentDetail: students,
                   session_id: session.id,
                 },
               })
