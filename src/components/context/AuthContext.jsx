@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
       .post(`${process.env.REACT_APP_BASE_URL}/logout`, null, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       })
       .then(() => {

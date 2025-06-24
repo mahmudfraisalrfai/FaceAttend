@@ -42,11 +42,13 @@ const StudentEntry = () => {
         axios.get(`${process.env.REACT_APP_BASE_URL}/admin/getAllDepartments`, {
           headers: {
             Authorization: `Bearer ${token}`,
+            "bypass-tunnel-reminder": "1",
           },
         }),
         axios.get(`${process.env.REACT_APP_BASE_URL}/admin/getAllYears`, {
           headers: {
             Authorization: `Bearer ${token}`,
+            "bypass-tunnel-reminder": "1",
           },
         }),
       ]);

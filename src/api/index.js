@@ -22,6 +22,7 @@ export const createuser = async (endpoint, data, token) => {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       }
     );
@@ -44,6 +45,7 @@ export const fetchDataSupervsior = async (endpoint, token) => {
     return await axios.get(`${process.env.REACT_APP_BASE_URL}/${endpoint}`, {
       headers: {
         Authorization: `Bearer ${token}`,
+        "bypass-tunnel-reminder": "1",
       },
     });
   } catch (error) {
@@ -59,6 +61,7 @@ export const getSessionById = async (endpoint, token, body) => {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       }
     );
@@ -75,6 +78,7 @@ export const getStudentsById = async (endpoint, token, body) => {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       }
     );
@@ -87,6 +91,7 @@ export const storeAttendace = async (endpoint, token, body, navigate) => {
     .post(`${process.env.REACT_APP_BASE_URL}/${endpoint}`, body, {
       headers: {
         Authorization: `Bearer ${token}`,
+        "bypass-tunnel-reminder": "1",
       },
     })
     .then((res) => {
@@ -112,6 +117,7 @@ export const getAllNeededForCreateSession = async (token, user) => {
       axios.get(`${process.env.REACT_APP_BASE_URL}/getAllClassRoom`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       }),
       user?.role !== "hall_supervisor"
@@ -120,6 +126,7 @@ export const getAllNeededForCreateSession = async (token, user) => {
             {
               headers: {
                 Authorization: `Bearer ${token}`,
+                "bypass-tunnel-reminder": "1",
               },
             }
           )
@@ -150,6 +157,7 @@ export const createSession = async (token, body) => {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
+          "bypass-tunnel-reminder": "1",
         },
       }
     );
@@ -166,6 +174,7 @@ export const createStudent = async (formData, token) => {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       }
     );
@@ -182,6 +191,7 @@ export const getAllStudents = async (token) => {
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       }
     );
