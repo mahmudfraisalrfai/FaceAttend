@@ -25,6 +25,11 @@ const Login = () => {
         {
           email,
           password,
+        },
+        {
+          headers: {
+            "bypass-tunnel-reminder": "1",
+          },
         }
       );
 
