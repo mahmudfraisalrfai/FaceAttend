@@ -4,25 +4,14 @@ import { Card, CardContent, Button } from "../ui/desgin";
 import { createSession, getAllNeededForCreateSession } from "../api";
 import { useAuth } from "../components/context/AuthContext";
 import { toast } from "react-toastify";
-const departments = [
-  "حواسيب",
-  "اتصالات",
-  "ميكاترونيكس",
-  "قدرة",
-  "قيادة",
-  "طبية",
-  "الكترون",
-];
-const years = ["الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة"];
 
 const SessionFree = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [classRooms, setClassRooms] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    department: "",
-    year: "",
     subject: "",
     place: "",
     supervisor: "",
@@ -55,14 +44,14 @@ const SessionFree = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFileData(file); // لا حاجة لقراءته بعد الآن
+      setFileData(file);
     }
   };
 
   const handleCreateSession = () => {
+    if (loading) return;
+
     const newErrors = {};
-    if (!form.department) newErrors.department = "الرجاء اختيار القسم.";
-    if (!form.year) newErrors.year = "الرجاء اختيار السنة الدراسية.";
     if (!form.subject) newErrors.subject = "الرجاء اختيار المادة.";
     if (!form.place) newErrors.place = "الرجاء اختيار المكان.";
     if (!form.startDate) newErrors.startDate = "الرجاء إدخال تاريخ البدء.";
@@ -82,76 +71,72 @@ const SessionFree = () => {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
+    setLoading(true);
+
     const selectedCourse = courses.find((c) => c.name === form.subject);
     const selectedClassRoom = classRooms.find((r) => r.name === form.place);
     const selectedSupervisor = supervisors.find(
       (s) => s.name === form.supervisor
     );
-    if (user.role === "admin") {
-      const sessionData = new FormData();
-      sessionData.append("course_id", selectedCourse?.id);
-      sessionData.append("classroom_id", selectedClassRoom?.id);
-      sessionData.append(
-        "start_time",
-        form.startDate.replace("T", " ") + ":00"
-      );
-      sessionData.append("end_time", form.endDate.replace("T", " ") + ":00");
-      sessionData.append("supervisor_id", selectedSupervisor?.id);
-      sessionData.append("attendance_file", fileData); // ملف Excel الأصلي
 
-      console.log("📋 Session Data:", sessionData);
-      (async () => {
-        try {
-          const res = await createSession(token, sessionData);
-          toast.success(res?.data.message);
-          navigate("/");
-          console.log(res);
-        } catch (error) {
-          if (error?.response?.data) {
-            const data = error.response.data;
-
-            let errorMessage = data.message || "حدث خطأ أثناء إنشاء الجلسة";
-
-            if (
-              Array.isArray(data.missing_students) &&
-              data.missing_students.length > 0
-            ) {
-              const students = data.missing_students.join(", ");
-              errorMessage += ` \nالطلاب الغير الموجودين: ${students}`;
-            }
-
-            toast.error(errorMessage);
-          } else {
-            toast.error("حدث خطأ غير متوقع أثناء إنشاء الجلسة");
-          }
-          navigate("/");
-          console.error(error?.response?.data?.message || error.message);
-        }
-      })();
-    } else {
-      const sessionData = {
-        course_id: selectedCourse?.id,
-        classroom_id: selectedClassRoom?.id,
-        start_time: form.startDate.replace("T", " ") + ":00",
-        end_time: form.endDate.replace("T", " ") + ":00",
-      };
-
-      console.log("📋 Session Data:", sessionData);
-      (async () => {
-        try {
-          const res = await createSession(token, sessionData);
-          toast.success(res?.data.message);
-          navigate("/");
-          console.log(res);
-        } catch (error) {
-          toast.error(
-            error?.response?.data?.message || "حدث خطأ أثناء إنشاء الجلسة"
+    const sendSessionData = async () => {
+      try {
+        let res;
+        if (user.role === "admin") {
+          const sessionData = new FormData();
+          sessionData.append("course_id", selectedCourse?.id);
+          sessionData.append("classroom_id", selectedClassRoom?.id);
+          sessionData.append(
+            "start_time",
+            form.startDate.replace("T", " ") + ":00"
           );
-          navigate("/");
-          console.error(error?.response?.data?.message || error.message);
+          sessionData.append(
+            "end_time",
+            form.endDate.replace("T", " ") + ":00"
+          );
+          sessionData.append("supervisor_id", selectedSupervisor?.id);
+          sessionData.append("attendance_file", fileData);
+
+          res = await createSession(token, sessionData);
+          toast.success(res?.data.message);
+        } else {
+          const sessionData = {
+            course_id: selectedCourse?.id,
+            classroom_id: selectedClassRoom?.id,
+            start_time: form.startDate.replace("T", " ") + ":00",
+            end_time: form.endDate.replace("T", " ") + ":00",
+          };
+
+          res = await createSession(token, sessionData);
+          toast.success("تم انشاْ الجلسة بنجاح ");
         }
-      })();
-    }
+
+        navigate("/");
+      } catch (error) {
+        if (error?.response?.data) {
+          const data = error.response.data;
+          let errorMessage = data.message || "حدث خطأ أثناء إنشاء الجلسة";
+
+          if (
+            Array.isArray(data.missing_students) &&
+            data.missing_students.length > 0
+          ) {
+            const students = data.missing_students.join(", ");
+            errorMessage += ` \nالطلاب الغير الموجودين: ${students}`;
+          }
+
+          toast.error(errorMessage);
+        } else {
+          toast.error("حدث خطأ غير متوقع أثناء إنشاء الجلسة");
+        }
+        navigate("/");
+        console.error(error?.response?.data?.message || error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    sendSessionData();
   };
 
   return (
@@ -164,16 +149,6 @@ const SessionFree = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              {
-                label: "القسم",
-                name: "department",
-                options: departments,
-              },
-              {
-                label: "السنة الدراسية",
-                name: "year",
-                options: years,
-              },
               {
                 label: "المادة",
                 name: "subject",
@@ -287,9 +262,10 @@ const SessionFree = () => {
           <div className="mt-8 flex justify-center">
             <Button
               onClick={handleCreateSession}
+              disabled={loading}
               className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-2 rounded-md"
             >
-              ✅ إنشاء الجلسة
+              {loading ? "جاري الإنشاء..." : "إنشاء جلسة"}
             </Button>
           </div>
         </CardContent>

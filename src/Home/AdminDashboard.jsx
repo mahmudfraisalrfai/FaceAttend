@@ -201,11 +201,11 @@ function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* المحاضرين */}
+      {/* المشرفين */}
       <Card>
         <CardContent>
           <h2 className="text-xl font-semibold mb-4 text-gray-700">
-            👨‍🏫 قائمة المحاضرين
+            👨‍🏫 قائمة المشرفين
           </h2>
 
           {!lecturersLoading ? (

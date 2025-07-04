@@ -319,7 +319,7 @@ import * as faceapi from "face-api.js";
 import * as XLSX from "xlsx";
 import { Card, CardContent, Button } from "../ui/desgin";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getAllStudents, storeAttendace } from "../api";
+import { getAllStudents, getSessionById, storeAttendace } from "../api";
 import { useAuth } from "./context/AuthContext";
 import { toast } from "react-toastify";
 
@@ -332,27 +332,38 @@ function WebCam() {
 
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [attendance, setAttendance] = useState(new Set());
-  const [allStudents, SetAllStudents] = useState([]);
-  const studentDetail = location.state?.studentDetail;
-  const useFromState = Array.isArray(studentDetail) && studentDetail.length > 0;
+  const [studentNames, setStudentNames] = useState([]);
+  const [studentsSource, setStudentsSource] = useState(""); // "session" | "all"
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      if (!useFromState) {
-        try {
-          const response = await getAllStudents(token);
-          SetAllStudents(response.data);
-        } catch (error) {
-          toast.error("حدث خطأ ما الرجاء اعادة المحاولة");
-        }
-      }
-    };
-    fetchStudents();
-  }, [token, useFromState]);
+    async function fetchStudents() {
+      try {
+        const sessionResponse = await getSessionById(
+          "getStudentBySessionId",
+          token,
+          {
+            session_id: location.state.session_id,
+          }
+        );
 
-  const studentNames = useFromState
-    ? studentDetail
-    : allStudents?.students || [];
+        const sessionStudents = sessionResponse.data.students;
+
+        if (Array.isArray(sessionStudents) && sessionStudents.length > 0) {
+          setStudentNames(sessionStudents);
+          setStudentsSource("session");
+        } else {
+          const allResponse = await getAllStudents(token);
+          setStudentNames(allResponse.data.students);
+          setStudentsSource("all");
+        }
+      } catch (error) {
+        console.error("فشل تحميل بيانات الطلاب:", error);
+      }
+    }
+
+    fetchStudents();
+  }, [token, location.state.session_id]);
+  console.log(studentNames);
   const loadModels = async () => {
     const MODEL_URL = "/models";
     await Promise.all([
@@ -367,7 +378,7 @@ function WebCam() {
     return studentNames.map((student) => {
       const descriptor = new Float32Array(student.face_encoding);
       return new faceapi.LabeledFaceDescriptors(
-        `${!useFromState ? student.name : student.student_name} - ${
+        `${studentsSource == "all" ? student.name : student.student_name} - ${
           student.university_id
         }`,
         [descriptor]
@@ -409,9 +420,14 @@ function WebCam() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
     XLSX.writeFile(workbook, fileName);
   };
-
   useEffect(() => {
-    if (!modelsLoaded || !videoRef.current || !canvasRef.current) return;
+    if (
+      !modelsLoaded ||
+      !videoRef.current ||
+      !canvasRef.current ||
+      studentNames.length === 0
+    )
+      return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -429,6 +445,12 @@ function WebCam() {
       canvas.height = displaySize.height;
 
       const labeledDescriptors = loadLabeledDescriptors();
+
+      if (labeledDescriptors.length === 0) {
+        toast.error("لم يتم تحميل بيانات الوجوه بعد");
+        return;
+      }
+
       const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
 
       intervalId = setInterval(async () => {
@@ -469,7 +491,7 @@ function WebCam() {
       video.removeEventListener("play", handlePlay);
       clearInterval(intervalId);
     };
-  }, [modelsLoaded]);
+  }, [modelsLoaded, studentNames]);
 
   useEffect(() => {
     let stream;
@@ -531,8 +553,8 @@ function WebCam() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(useFromState
-                    ? studentDetail
+                  {(studentsSource === "session"
+                    ? studentNames
                     : studentNames.filter((s) =>
                         attendance.has(s.university_id)
                       )
@@ -544,7 +566,9 @@ function WebCam() {
                         className={isPresent ? "bg-green-50" : "bg-red-50"}
                       >
                         <td className="px-4 py-2">{index + 1}</td>
-                        <td className="px-4 py-2 font-medium">{detail.name}</td>
+                        <td className="px-4 py-2 font-medium">
+                          {detail.name || detail.student_name || "—"}
+                        </td>
                         <td className="px-4 py-2 font-medium">
                           {detail.university_id}
                         </td>
@@ -552,7 +576,7 @@ function WebCam() {
                           {isPresent ? "✅" : "❌"}
                         </td>
                         <td className="px-4 py-2 text-center">
-                          {!isPresent && useFromState && (
+                          {!isPresent && studentsSource === "session" && (
                             <button
                               onClick={() =>
                                 setAttendance((prev) =>
