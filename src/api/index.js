@@ -112,6 +112,7 @@ export const getAllNeededForCreateSession = async (token, user) => {
       axios.get(`${process.env.REACT_APP_BASE_URL}/getAllCourses`, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "bypass-tunnel-reminder": "1",
         },
       }),
       axios.get(`${process.env.REACT_APP_BASE_URL}/getAllClassRoom`, {
