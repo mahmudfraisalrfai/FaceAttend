@@ -272,7 +272,9 @@ function WebCam() {
                     <th className="px-4 py-2">الاسم</th>
                     <th className="px-4 py-2">الرقم الجامعي</th>
                     <th className="px-4 py-2 text-center">الحالة</th>
-                    <th className="px-4 py-2 text-center">إجراء</th>
+                    {studentsSource === "session" && (
+                      <th className="px-4 py-2 text-center">اخذ حضور يدوي </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -298,8 +300,9 @@ function WebCam() {
                         <td className="px-4 py-2 text-center text-lg">
                           {isPresent ? "✅" : "❌"}
                         </td>
-                        <td className="px-4 py-2 text-center">
-                          {!isPresent && studentsSource === "session" && (
+
+                        {!isPresent && studentsSource === "session" && (
+                          <td className="px-4 py-2 text-center">
                             <button
                               onClick={() =>
                                 setAttendance((prev) =>
@@ -308,10 +311,10 @@ function WebCam() {
                               }
                               className="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
                             >
-                              وضع حاضر
+                              حاضر
                             </button>
-                          )}
-                        </td>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

@@ -76,7 +76,7 @@ export const SessionCard = ({ session }) => {
       {/* Content */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
         <p>
-          🏫 <strong>القاعة:</strong> {session.classroomName}
+          🏫 <strong>المكان:</strong> {session.classroomName}
         </p>
         <p>
           🕔 <strong>إلى:</strong> {formatDateTime(session.endTime)}
