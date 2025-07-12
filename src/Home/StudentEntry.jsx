@@ -5,8 +5,11 @@ import * as faceapi from "face-api.js";
 import axios from "axios";
 import { useAuth } from "../components/context/AuthContext";
 import { createStudent } from "../api/index";
+import { useNavigate } from "react-router-dom";
 
 const StudentEntry = () => {
+  const navigate = useNavigate();
+
   const { token } = useAuth();
 
   const [form, setForm] = useState({
@@ -147,6 +150,14 @@ const StudentEntry = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 pt-24 flex justify-center items-center">
       <Card className="w-full max-w-xl shadow-xl border border-purple-300 rounded-2xl">
         <CardContent>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-purple-600 hover:text-purple-800 transition text-sm"
+            >
+              ← الرجوع
+            </button>
+          </div>
           <h2 className="text-2xl font-bold text-purple-700 mb-8 text-center">
             🧑‍🎓 إضافة طالب جديد
           </h2>
@@ -255,10 +266,16 @@ const StudentEntry = () => {
                     alt="preview"
                     className="max-h-40 mx-auto rounded"
                   />
-                  {processingMessage && (
-                    <p className="mt-2 text-sm font-medium text-purple-700">
-                      {processingMessage}
-                    </p>
+                  {isProcessing ? (
+                    <div className="mt-2 flex justify-center">
+                      <div className="h-4 w-48 bg-purple-300 rounded animate-pulse" />
+                    </div>
+                  ) : (
+                    processingMessage && (
+                      <p className="mt-2 text-sm font-medium text-purple-700">
+                        {processingMessage}
+                      </p>
+                    )
                   )}
                 </div>
               )}

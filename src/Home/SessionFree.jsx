@@ -11,6 +11,7 @@ const SessionFree = () => {
   const [classRooms, setClassRooms] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [stuffLoading, setStuffLodaing] = useState(false);
   const [form, setForm] = useState({
     subject: "",
     place: "",
@@ -26,12 +27,15 @@ const SessionFree = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setStuffLodaing(true);
         const data = await getAllNeededForCreateSession(token, user);
         setCourses(data.courses);
         setClassRooms(data.classRooms);
         setSupervisors(data.supervisors);
       } catch (error) {
-        alert("فشل في تحميل البيانات.");
+        toast.error("فشل في تحميل البيانات.");
+      } finally {
+        setStuffLodaing(false);
       }
     };
     fetchData();
@@ -143,72 +147,94 @@ const SessionFree = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 pt-24 flex justify-center items-center">
       <Card className="w-full max-w-3xl shadow-xl border border-purple-300 rounded-2xl">
         <CardContent>
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-purple-600 hover:text-purple-800 transition text-sm"
+            >
+              ← الرجوع
+            </button>
+          </div>
           <h2 className="text-2xl font-bold text-purple-700 mb-8 text-center">
             🎓 إعداد جلسة حضور جديدة
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              {
-                label: "المادة",
-                name: "subject",
-                options: courses.map((c) => c.name),
-              },
-              {
-                label: "المكان",
-                name: "place",
-                options: classRooms.map((r) => r.name),
-              },
-            ].map(({ label, name, options }) => (
-              <div key={name}>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
-                  {label}
-                </label>
-                <select
-                  name={name}
-                  value={form[name]}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="">اختر {label}</option>
-                  {options.map((opt, i) => (
-                    <option key={i} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-                {errors[name] && (
-                  <p className="text-red-500 text-sm mt-1">{errors[name]}</p>
-                )}
+            {stuffLoading ? (
+              <div className="space-y-4 animate-pulse">
+                {[...Array(3)].map((_, idx) => (
+                  <div key={idx}>
+                    <div className="h-4 w-24 bg-gray-300 rounded mb-2"></div>
+                    <div className="h-10 w-full bg-gray-200 rounded"></div>
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <>
+                {[
+                  {
+                    label: "المادة",
+                    name: "subject",
+                    options: courses.map((c) => c.name),
+                  },
+                  {
+                    label: "المكان",
+                    name: "place",
+                    options: classRooms.map((r) => r.name),
+                  },
+                ].map(({ label, name, options }) => (
+                  <div key={name}>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">
+                      {label}
+                    </label>
+                    <select
+                      name={name}
+                      value={form[name]}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">اختر {label}</option>
+                      {options.map((opt, i) => (
+                        <option key={i} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                    {errors[name] && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors[name]}
+                      </p>
+                    )}
+                  </div>
+                ))}
 
-            {user.role === "admin" && (
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
-                  المشرف
-                </label>
-                <select
-                  name="supervisor"
-                  value={form.supervisor}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="">اختر مشرفاً</option>
-                  {supervisors.map((sup) => (
-                    <option key={sup.id} value={sup.name}>
-                      {sup.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.supervisor && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.supervisor}
-                  </p>
+                {user.role === "admin" && (
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">
+                      المشرف
+                    </label>
+                    <select
+                      name="supervisor"
+                      value={form.supervisor}
+                      onChange={handleChange}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">اختر مشرفاً</option>
+                      {supervisors.map((sup) => (
+                        <option key={sup.id} value={sup.name}>
+                          {sup.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.supervisor && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.supervisor}
+                      </p>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
-
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-700">
                 تاريخ البدء

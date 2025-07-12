@@ -16,9 +16,9 @@ function SessionDetails() {
   const { token, user } = useAuth();
 
   useEffect(() => {
-    setLoading(true);
     const fetchSession = async () => {
       try {
+        setLoading(true);
         const response = await getSessionById("getStudentBySessionId", token, {
           session_id: id,
         });
@@ -33,9 +33,9 @@ function SessionDetails() {
           place: passedSession.place || "غير معروف",
           students: sessionData.students || [],
         });
-        setLoading(false);
       } catch (error) {
         console.error("فشل تحميل بيانات الجلسة:", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -120,7 +120,7 @@ function SessionDetails() {
           <h2 className="text-xl font-bold mb-4 text-purple-700">
             📋 قائمة الحضور
           </h2>
-          {session.students?.length > 0 ? (
+          {loading ? (
             <table className="w-full text-right border" dir="rtl">
               <thead className="bg-gray-100">
                 <tr>
@@ -131,20 +131,30 @@ function SessionDetails() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <AttendanceSkeleton />
-                ) : (
-                  session.students.map((student, index) => (
-                    <tr key={student.record_id} className="border-b">
-                      <td className="px-4 py-2">{index + 1}</td>
-                      <td className="px-4 py-2">{student.student_name}</td>
-                      <td className="px-4 py-2">{student.university_id}</td>
-                      <td className="px-4 py-2">
-                        {student.is_present ? "حاضر" : "غائب"}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                <AttendanceSkeleton />
+              </tbody>
+            </table>
+          ) : session.students?.length > 0 ? (
+            <table className="w-full text-right border" dir="rtl">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-2">#</th>
+                  <th className="px-4 py-2">اسم الطالب</th>
+                  <th className="px-4 py-2">رقم الطالب</th>
+                  <th className="px-4 py-2">الحضور</th>
+                </tr>
+              </thead>
+              <tbody>
+                {session.students.map((student, index) => (
+                  <tr key={student.record_id} className="border-b">
+                    <td className="px-4 py-2">{index + 1}</td>
+                    <td className="px-4 py-2">{student.student_name}</td>
+                    <td className="px-4 py-2">{student.university_id}</td>
+                    <td className="px-4 py-2">
+                      {student.is_present ? "حاضر" : "غائب"}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           ) : (
